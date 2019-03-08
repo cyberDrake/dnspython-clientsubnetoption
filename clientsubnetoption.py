@@ -44,7 +44,7 @@ import dns.message
 import dns.query
 
 __author__ = "bhartvigsen@opendns.com (Brian Hartvigsen)"
-__version__ = "2.0.0"
+__version__ = "2.1.1"
 
 ASSIGNED_OPTION_CODE = 0x0008
 DRAFT_OPTION_CODE = 0x50FA
@@ -65,7 +65,7 @@ class ClientSubnetOption(dns.edns.Option):
             the authoritative server.
     """
 
-    def __init__(self, ip, bits=24, scope=0, option=ASSIGNED_OPTION_CODE):
+    def __init__(self, ip, bits=-1, scope=0, option=ASSIGNED_OPTION_CODE):
         super(ClientSubnetOption, self).__init__(option)
 
         n = None
@@ -76,10 +76,14 @@ class ClientSubnetOption(dns.edns.Option):
                 n = socket.inet_pton(family, ip)
                 if family == socket.AF_INET6:
                     f = FAMILY_IPV6
+                    if bits == -1:
+                        bits = 48
                     hi, lo = struct.unpack('!QQ', n)
                     ip = hi << 64 | lo
                 elif family == socket.AF_INET:
                     f = FAMILY_IPV4
+                    if bits == -1:
+                        bits = 24
                     ip = struct.unpack('!L', n)[0]
             except Exception:
                 pass
@@ -141,7 +145,7 @@ class ClientSubnetOption(dns.edns.Option):
         test = test[-(mask_bits // 8):]
 
         format = "!HBB%ds" % (mask_bits // 8)
-        data = struct.pack(format, self.family, self.mask, 0, test)
+        data = struct.pack(format, self.family, self.mask, self.scope, test)
         file.write(data)
 
     def from_wire(cls, otype, wire, current, olen):
@@ -238,13 +242,16 @@ if __name__ == "__main__":
         # us to check for support of both draft and official
         message.use_edns(options=[cso])
 
+        if args.recursive:
+            message.flags = message.flags | dns.flags.RD
+
         try:
             r = dns.query.udp(message, addr, timeout=args.timeout)
             if r.flags & dns.flags.TC:
                 r = dns.query.tcp(message, addr, timeout=args.timeout)
         except dns.exception.Timeout:
             print("Timeout: No answer received from %s\n" % args.nameserver, file=sys.stderr)
-            sys.exit(3)
+            return
 
         error = False
         found = False
@@ -282,6 +289,7 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--mask', type=int, help='CIDR mask to use for subnet')
     parser.add_argument('--timeout', type=int, help='Set the timeout for query to TIMEOUT seconds, default=10', default=10)
     parser.add_argument('-t', '--type', help='DNS query type, default=A', default='A')
+    parser.add_argument('-r', '--recursive', action="store_true", help='Send a query with RD bits set', default=False)
     args = parser.parse_args()
 
     if not args.mask:

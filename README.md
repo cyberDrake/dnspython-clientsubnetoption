@@ -1,6 +1,6 @@
 # ClientSubnetOption
 
-Class to add [draft-vandergaast-edns-client-subnet-01](http://tools.ietf.org/html/draft-vandergaast-edns-client-subnet-01) support to [dnspython](http://www.dnspython.org).
+Class to add [RFC 7871 - Client Subnet in DNS Queries](https://tools.ietf.org/html/rfc7871) support to [dnspython](http://www.dnspython.org).
 
 ## Installation
 
@@ -14,6 +14,15 @@ Class to add [draft-vandergaast-edns-client-subnet-01](http://tools.ietf.org/htm
 **Note**: If you are installing dnspython on Python3, use `pip install dnspython3`
 
 ## Changelog
+
+### 2.1.1
+ * Better default for bitmask values (@DarkDeviL)
+
+### 2.1.0
+ * Correctly set scope in `to_wire` (@rgacogne)
+ * CLI Improvements:
+   * Option to set Recursion Desired flag on the message
+   * Won't fail completely on nameserver timeout
 
 ### 2.0.0
  * Python 3 compatible (tested with 3.4.3 & 2.7.10)
